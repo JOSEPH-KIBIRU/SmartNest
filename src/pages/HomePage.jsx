@@ -36,7 +36,7 @@ const heroVideos = [
     title: 'Kitchen & Home Collection'
   },
   {
-    url: '/public/kitchen 2.mp4',
+    url: '/public/kitchen2.mp4',
     title: 'Latest Arrivals'
   }
 ];
