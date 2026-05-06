@@ -10,11 +10,7 @@ import {
   Star,
   Flame,
   ChevronRight,
-  ShoppingBag,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX
+  ShoppingBag
 } from 'lucide-react';
 import AnimatedSection from '../components/ui/AnimatedSection';
 import AnimatedProductCard from '../components/product/AnimatedProductCard';
@@ -29,7 +25,7 @@ const categoryImages = {
   electronics: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80"
 };
 
-
+// Your videos - use correct paths
 const heroVideos = [
   {
     url: '/kitchen.mp4',
@@ -47,100 +43,75 @@ export default function HomePage() {
   
   // Video state
   const [currentVideo, setCurrentVideo] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isLoadingVideo, setIsLoadingVideo] = useState(true);
   const videoRef = useRef(null);
+  const videoInitializedRef = useRef(false);
 
   // Auto-switch videos every 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentVideo((prev) => (prev + 1) % heroVideos.length);
-      setIsLoadingVideo(true); // Show loading when switching
     }, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  // Handle video changes with proper loading
+  // Handle video source changes
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
-    let playPromise = null;
-
-    const handleCanPlay = () => {
-      if (videoElement && isLoadingVideo && isPlaying) {
-        playPromise = videoElement.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsLoadingVideo(false);
-            })
-            .catch(error => {
-              console.error('Playback error:', error);
-              setIsLoadingVideo(false);
-            });
-        }
-      }
-    };
-
-    const handleError = (e) => {
-      console.error('Video error:', heroVideos[currentVideo].url, e);
-      setIsLoadingVideo(false);
-    };
-
-    // Set source and load
-    videoElement.src = heroVideos[currentVideo].url;
-    videoElement.load();
-    
-    // Add event listeners
-    videoElement.addEventListener('canplay', handleCanPlay, { once: true });
-    videoElement.addEventListener('error', handleError);
-    
-    // If video is already loaded enough
-    if (videoElement.readyState >= 3) {
-      handleCanPlay();
-    }
-
-    // Cleanup
-    return () => {
-      videoElement.removeEventListener('canplay', handleCanPlay);
-      videoElement.removeEventListener('error', handleError);
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {});
-      }
-    };
-  }, [currentVideo, isPlaying, isLoadingVideo]);
-
-  const togglePlay = () => {
-    const videoElement = videoRef.current;
-    if (!videoElement) return;
-    
-    if (isPlaying) {
-      videoElement.pause();
-      setIsPlaying(false);
-    } else {
+    // Function to safely play video
+    const safePlay = () => {
+      if (!videoElement) return;
+      
       const playPromise = videoElement.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error('Play error:', error);
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(err => {
+          // Ignore AbortError - it's normal when switching videos
+          if (err.name !== 'AbortError') {
+            console.log('Playback error:', err.message);
+          }
         });
       }
-      setIsPlaying(true);
+    };
+
+    // Set new source and play
+    if (videoElement.src !== heroVideos[currentVideo].url) {
+      videoElement.src = heroVideos[currentVideo].url;
+      videoElement.load();
+      
+      // Wait for video to be ready
+      const onCanPlay = () => {
+        safePlay();
+        videoElement.removeEventListener('canplay', onCanPlay);
+      };
+      
+      videoElement.addEventListener('canplay', onCanPlay);
+      
+      // Cleanup
+      return () => {
+        videoElement.removeEventListener('canplay', onCanPlay);
+      };
+    } else {
+      safePlay();
     }
-  };
-  
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
+  }, [currentVideo]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const videoElement = videoRef.current;
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.src = '';
+        videoElement.load();
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
       
-      {/* HERO SECTION WITH FIXED VIDEO LOGIC */}
+      {/* HERO SECTION */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         {/* Video Background */}
         <div className="absolute inset-0">
@@ -148,7 +119,7 @@ export default function HomePage() {
             ref={videoRef}
             autoPlay
             loop={false}
-            muted={isMuted}
+            muted
             playsInline
             className="absolute top-0 left-0 w-full h-full object-cover"
           />
@@ -162,24 +133,6 @@ export default function HomePage() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
         </div>
-
-        {/* Optional Video Controls - Uncomment if you want controls */}
-        {/* <div className="absolute bottom-6 right-6 z-20 flex gap-2">
-          <button
-            onClick={togglePlay}
-            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all hover:scale-110"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          </button>
-          <button
-            onClick={toggleMute}
-            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all hover:scale-110"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
-        </div> */}
 
         {/* Hero Content - Centered */}
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
