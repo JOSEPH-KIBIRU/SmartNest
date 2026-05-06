@@ -29,14 +29,14 @@ const categoryImages = {
   electronics: "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80"
 };
 
-// Your videos from Pixabay - ONLY videos, NO photos
+
 const heroVideos = [
   {
-    url: '/public/kitchen.mp4',
+    url: '/kitchen.mp4',
     title: 'Kitchen & Home Collection'
   },
   {
-    url: '/public/kitchen2.mp4',
+    url: '/kitchen2.mp4',
     title: 'Latest Arrivals'
   }
 ];
@@ -49,25 +49,87 @@ export default function HomePage() {
   const [currentVideo, setCurrentVideo] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
-  const [videoError, setVideoError] = useState(false);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(true);
   const videoRef = useRef(null);
 
   // Auto-switch videos every 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentVideo((prev) => (prev + 1) % heroVideos.length);
+      setIsLoadingVideo(true); // Show loading when switching
     }, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  // Handle video play/pause when video changes
+  // Handle video changes with proper loading
   useEffect(() => {
-  if (videoRef.current) {
-    videoRef.current.play().catch(e => console.log('Play error:', e));
-  }
-}, [currentVideo]);
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+    let playPromise = null;
+
+    const handleCanPlay = () => {
+      if (videoElement && isLoadingVideo && isPlaying) {
+        playPromise = videoElement.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsLoadingVideo(false);
+            })
+            .catch(error => {
+              console.error('Playback error:', error);
+              setIsLoadingVideo(false);
+            });
+        }
+      }
+    };
+
+    const handleError = (e) => {
+      console.error('Video error:', heroVideos[currentVideo].url, e);
+      setIsLoadingVideo(false);
+    };
+
+    // Set source and load
+    videoElement.src = heroVideos[currentVideo].url;
+    videoElement.load();
+    
+    // Add event listeners
+    videoElement.addEventListener('canplay', handleCanPlay, { once: true });
+    videoElement.addEventListener('error', handleError);
+    
+    // If video is already loaded enough
+    if (videoElement.readyState >= 3) {
+      handleCanPlay();
+    }
+
+    // Cleanup
+    return () => {
+      videoElement.removeEventListener('canplay', handleCanPlay);
+      videoElement.removeEventListener('error', handleError);
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
+    };
+  }, [currentVideo, isPlaying, isLoadingVideo]);
+
+  const togglePlay = () => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+    
+    if (isPlaying) {
+      videoElement.pause();
+      setIsPlaying(false);
+    } else {
+      const playPromise = videoElement.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Play error:', error);
+        });
+      }
+      setIsPlaying(true);
+    }
+  };
+  
   const toggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
@@ -78,105 +140,119 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white overflow-hidden">
       
-      {/* REPLACE your entire hero section with this clean version (NO controls) */}
-
-<section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-  {/* Video Background - NO CONTROLS */}
-  <div className="absolute inset-0">
-    <video
-      ref={videoRef}
-      src={heroVideos[currentVideo].url}
-      autoPlay
-      loop
-      muted
-      playsInline
-      className="absolute top-0 left-0 w-full h-full object-cover"
-    />
-    {/* Dark overlay for text readability */}
-    <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
-  </div>
-
-  {/* Floating decorative elements */}
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl animate-float" />
-    <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-  </div>
-
-  
-
-  {/* Hero Content - Centered */}
-  <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <AnimatedSection direction="up" delay={0}>
-      <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-8">
-        <Flame className="h-4 w-4 text-amber-400" />
-        <span className="text-white/90 text-sm font-medium">Duka Bora la Nyumbani Kenya</span>
-      </div>
-    </AnimatedSection>
-
-    <AnimatedSection direction="up" delay={100}>
-      <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-red-200 mb-6 leading-tight">
-        Smart<span className="text-fuchsia-600">Nest</span>
-      </h1>
-    </AnimatedSection>
-
-    <AnimatedSection direction="up" delay={200}>
-      <p className="text-xl md:text-2xl text-white/80 mb-4 max-w-2xl mx-auto leading-relaxed">
-        Vifaa vya jikoni, mavazi ya mtindo, na elektroniki kwa bei nafuu
-      </p>
-    </AnimatedSection>
-
-    <AnimatedSection direction="up" delay={300}>
-      <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
-        Air Fryer · Cooker · Blender · Mavazi · Viatu · Simu za rununu
-      </p>
-    </AnimatedSection>
-
-    <AnimatedSection direction="up" delay={400}>
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link 
-          to="/products" 
-          className="inline-flex items-center justify-center px-8 py-4 bg-amber-700 text-white font-bold rounded-full hover:bg-blue-400 transition-all hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/30"
-        >
-          <ShoppingBag className="mr-2 h-5 w-5" />
-          Anza Ununuzi
-        </Link>
-        <Link 
-          to="/category/kitchen" 
-          className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md border-2 border-white/30 text-white font-bold rounded-full hover:bg-white/20 transition-all hover:scale-105"
-        >
-          Jikoni
-          <ChevronRight className="ml-1 h-5 w-5" />
-        </Link>
-      </div>
-    </AnimatedSection>
-
-    {/* Trust badges */}
-    <AnimatedSection direction="up" delay={600}>
-      <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/60 text-sm">
-        <div className="flex items-center">
-          <Truck className="h-4 w-4 mr-2" />
-          Usafiri Bure
+      {/* HERO SECTION WITH FIXED VIDEO LOGIC */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+        {/* Video Background */}
+        <div className="absolute inset-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            loop={false}
+            muted={isMuted}
+            playsInline
+            className="absolute top-0 left-0 w-full h-full object-cover"
+          />
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
         </div>
-        <div className="flex items-center">
-          <Shield className="h-4 w-4 mr-2" />
-          Kulipa kwa Ulinzi
-        </div>
-        <div className="flex items-center">
-          <Star className="h-4 w-4 mr-2 text-amber-400" />
-          Bidhaa Bora
-        </div>
-      </div>
-    </AnimatedSection>
-  </div>
 
-  {/* Scroll indicator */}
-  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10">
-    <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center">
-      <div className="w-1.5 h-3 bg-white/60 rounded-full mt-2 animate-scroll-down" />
-    </div>
-  </div>
-</section>
+        {/* Floating decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+        </div>
+
+        {/* Optional Video Controls - Uncomment if you want controls */}
+        {/* <div className="absolute bottom-6 right-6 z-20 flex gap-2">
+          <button
+            onClick={togglePlay}
+            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all hover:scale-110"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          </button>
+          <button
+            onClick={toggleMute}
+            className="bg-black/50 hover:bg-black/70 text-white p-3 rounded-full backdrop-blur-sm transition-all hover:scale-110"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+        </div> */}
+
+        {/* Hero Content - Centered */}
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <AnimatedSection direction="up" delay={0}>
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-8">
+              <Flame className="h-4 w-4 text-amber-400" />
+              <span className="text-white/90 text-sm font-medium">Duka Bora la Nyumbani Kenya</span>
+            </div>
+          </AnimatedSection>
+
+          <AnimatedSection direction="up" delay={100}>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-red-200 mb-6 leading-tight">
+              Smart<span className="text-fuchsia-600">Nest</span>
+            </h1>
+          </AnimatedSection>
+
+          <AnimatedSection direction="up" delay={200}>
+            <p className="text-xl md:text-2xl text-white/80 mb-4 max-w-2xl mx-auto leading-relaxed">
+              Vifaa vya jikoni, mavazi ya mtindo, na elektroniki kwa bei nafuu
+            </p>
+          </AnimatedSection>
+
+          <AnimatedSection direction="up" delay={300}>
+            <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
+              Air Fryer · Cooker · Blender · Mavazi · Viatu · Simu za rununu
+            </p>
+          </AnimatedSection>
+
+          <AnimatedSection direction="up" delay={400}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                to="/products" 
+                className="inline-flex items-center justify-center px-8 py-4 bg-amber-700 text-white font-bold rounded-full hover:bg-blue-400 transition-all hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/30"
+              >
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                Anza Ununuzi
+              </Link>
+              <Link 
+                to="/category/kitchen" 
+                className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md border-2 border-white/30 text-white font-bold rounded-full hover:bg-white/20 transition-all hover:scale-105"
+              >
+                Jikoni
+                <ChevronRight className="ml-1 h-5 w-5" />
+              </Link>
+            </div>
+          </AnimatedSection>
+
+          {/* Trust badges */}
+          <AnimatedSection direction="up" delay={600}>
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/60 text-sm">
+              <div className="flex items-center">
+                <Truck className="h-4 w-4 mr-2" />
+                Usafiri Bure
+              </div>
+              <div className="flex items-center">
+                <Shield className="h-4 w-4 mr-2" />
+                Kulipa kwa Ulinzi
+              </div>
+              <div className="flex items-center">
+                <Star className="h-4 w-4 mr-2 text-amber-400" />
+                Bidhaa Bora
+              </div>
+            </div>
+          </AnimatedSection>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10">
+          <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center">
+            <div className="w-1.5 h-3 bg-white/60 rounded-full mt-2 animate-scroll-down" />
+          </div>
+        </div>
+      </section>
 
       {/* ==================== CATEGORY SHOWCASE ==================== */}
       <section className="py-20 bg-gray-50">
