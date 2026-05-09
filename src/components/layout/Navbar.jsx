@@ -41,22 +41,51 @@ export default function Navbar() {
     }
   };
 
-  const handleLoginClick = (e) => {
+  const handleLoginClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log("Login button clicked - mobile or desktop");
 
     if (typeof login !== "function") {
+      console.error("Auth error: Login function not available.");
       alert("Auth error: Login function not available.");
       return;
     }
 
-    login();
+    try {
+      // Close mobile menu first
+      setMenuOpen(false);
+      
+      // Small delay to ensure menu closes before redirect
+      setTimeout(() => {
+        login();
+      }, 100);
+    } catch (err) {
+      console.error("Login error:", err);
+    }
   };
 
   const handleLogoutClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setMenuOpen(false);
     logout();
+  };
+
+  // Direct login for mobile - bypasses any potential event issues
+  const handleMobileLogin = () => {
+    console.log("Mobile login button clicked directly");
+    setMenuOpen(false);
+    // Small delay to ensure menu closes
+    setTimeout(() => {
+      if (typeof login === "function") {
+        login();
+      } else {
+        console.error("Login function not available");
+        alert("Unable to login. Please try again.");
+      }
+    }, 100);
   };
 
   return (
@@ -69,10 +98,11 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo - More Vivid */}
+          {/* Logo */}
           <Link
             to="/"
             className="flex items-center space-x-2 flex-shrink-0 group"
+            onClick={() => setMenuOpen(false)}
           >
             <Store className="h-8 w-8 text-emerald-400 drop-shadow-lg" />
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
@@ -80,7 +110,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Search - Glass morphism */}
+          {/* Desktop Search */}
           <form
             onSubmit={onSearch}
             className="hidden md:flex flex-1 max-w-lg mx-8"
@@ -140,7 +170,7 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Cart Button with Animation */}
+            {/* Cart Button */}
             <button
               onClick={() => setIsOpen(true)}
               className="relative p-2 text-white hover:text-amber-300 transition-colors rounded-full hover:bg-white/10"
@@ -154,7 +184,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile buttons - Updated colors */}
+          {/* Mobile buttons */}
           <div className="md:hidden flex items-center space-x-4">
             <button
               onClick={() => setIsOpen(true)}
@@ -181,9 +211,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu - Glass morphism */}
+      {/* Mobile Menu - FIXED LOGIN BUTTON */}
       {menuOpen && (
-        <div className="md:hidden bg-gradient-to-br from-emerald-800 via-teal-800 to-emerald-900 backdrop-blur-lg border-t border-white/20">
+        <div className="md:hidden bg-gradient-to-br from-gray-800 via-slate-800 to-gray-900 backdrop-blur-lg border-t border-white/20">
           <div className="px-4 pt-4 pb-6 space-y-4">
             <form onSubmit={onSearch} className="relative">
               <input
@@ -240,9 +270,10 @@ export default function Navbar() {
                     Maagizo Yangu
                   </Link>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       handleLogoutClick();
-                      setMenuOpen(false);
                     }}
                     className="block w-full text-left px-4 py-3 text-red-300 hover:text-red-200 hover:bg-white/10 rounded-xl transition-all flex items-center"
                   >
@@ -252,9 +283,11 @@ export default function Navbar() {
                 </>
               ) : (
                 <button
-                  onClick={() => {
-                    handleLoginClick();
-                    setMenuOpen(false);
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Mobile login button clicked");
+                    handleMobileLogin();
                   }}
                   className="block w-full text-left px-4 py-3 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-all font-medium flex items-center"
                 >

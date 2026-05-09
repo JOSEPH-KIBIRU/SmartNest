@@ -26,6 +26,7 @@ export default defineSchema({
     isActive: v.boolean(),
     tags: v.optional(v.array(v.string())),
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_category", ["categoryId"])
     .index("by_active", ["isActive"])
@@ -41,20 +42,35 @@ export default defineSchema({
       image: v.string(),
       attributes: v.optional(v.record(v.string(), v.any())),
     })),
+    // Make new fields optional for existing orders
+    subtotal: v.optional(v.number()),      // Changed to optional
+    shipping: v.optional(v.number()),       // Changed to optional
+    tax: v.optional(v.number()),            // Changed to optional
     total: v.number(),
+    customerEmail: v.optional(v.string()),  // Changed to optional
     status: v.union(
-      v.literal("pending"), v.literal("paid"), v.literal("processing"),
-      v.literal("shipped"), v.literal("delivered"), v.literal("cancelled")
+      v.literal("pending"), 
+      v.literal("paid"), 
+      v.literal("processing"),
+      v.literal("shipped"), 
+      v.literal("delivered"), 
+      v.literal("cancelled")
     ),
     shippingAddress: v.object({
-      name: v.string(), phone: v.string(), address: v.string(),
-      city: v.string(), region: v.string(), notes: v.optional(v.string()),
+      name: v.string(), 
+      phone: v.string(), 
+      address: v.string(),
+      city: v.string(), 
+      region: v.string(), 
+      notes: v.optional(v.string()),
     }),
     paymentIntentId: v.optional(v.string()),
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_createdAt", ["createdAt"]),
 
   users: defineTable({
     email: v.string(),
@@ -64,6 +80,8 @@ export default defineSchema({
     address: v.optional(v.string()),
     avatar: v.optional(v.string()),
     auth0Id: v.string(),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_auth0Id", ["auth0Id"])
     .index("by_email", ["email"]),

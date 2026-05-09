@@ -25,6 +25,17 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
+  // Calculate shipping and tax
+  const calculateShipping = (subtotal) => {
+    // Free shipping for orders over 5000 KSh, otherwise 299 KSh
+    return subtotal > 5000 ? 0 : 299;
+  };
+
+  const calculateTax = (subtotal) => {
+    // 8% tax (e.g., VAT)
+    return subtotal * 0.08;
+  };
+
   if (cart.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -36,14 +47,29 @@ export default function CheckoutPage() {
     );
   }
 
+  const subtotal = totalPrice;
+  const shipping = calculateShipping(subtotal);
+  const tax = calculateTax(subtotal);
+  const grandTotal = subtotal + shipping + tax;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setProcessing(true); 
     setError('');
     
     try {
+      // Validate required fields
+      if (!form.name || !form.phone || !form.address || !form.city || !form.region) {
+        setError('Tafadhali jaza sehemu zote zenye alama ya nyota (*)');
+        setProcessing(false);
+        return;
+      }
+      
       // Generate a guest user ID if not logged in
       const userId = user?._id || `guest_${Date.now()}`;
+      
+      // Get customer email (use form email or fallback)
+      const customerEmail = form.email || `${form.phone}@guest.smartnest.com`;
       
       const orderId = await createOrder({
         userId: userId,
@@ -53,23 +79,28 @@ export default function CheckoutPage() {
           price: i.price, 
           quantity: i.quantity, 
           image: i.image, 
-          attributes: i.selectedAttributes 
+          attributes: i.selectedAttributes || {}
         })),
-        total: totalPrice,
+        subtotal: subtotal,
+        shipping: shipping,
+        tax: tax,
+        total: grandTotal,
+        customerEmail: customerEmail,
         shippingAddress: { 
           name: form.name, 
           phone: form.phone, 
           address: form.address, 
           city: form.city, 
           region: form.region, 
-          notes: form.notes 
+          notes: form.notes || '' 
         },
       });
       
       clearCart();
       navigate('/order-success', { state: { orderId } });
     } catch (err) {
-      setError('Kulikuwa na hitilafu. Tafadhali jaribu tena.');
+      console.error('Order creation error:', err);
+      setError(err.message || 'Kulikuwa na hitilafu. Tafadhali jaribu tena.');
     } finally { 
       setProcessing(false); 
     }
@@ -150,6 +181,7 @@ export default function CheckoutPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
                   placeholder="john@example.com" 
                 />
+                <p className="text-xs text-gray-500 mt-1">Tutatumia ikiwa tunahitaji kukusiliana</p>
               </div>
               
               <div className="md:col-span-2">
@@ -195,7 +227,7 @@ export default function CheckoutPage() {
                   onChange={e => setForm({...form, notes: e.target.value})} 
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
                   rows={3} 
-                  placeholder="Maelezo ya ziada kuhusu usafiri..." 
+                  placeholder="Maelezo ya ziada kuhusu usafiri (mfano: wito kabla ya kufika)..." 
                 />
               </div>
             </div>
@@ -207,7 +239,7 @@ export default function CheckoutPage() {
             className="w-full bg-emerald-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-emerald-700 disabled:bg-gray-400 transition-colors flex items-center justify-center"
           >
             <CreditCard className="mr-2 h-5 w-5" /> 
-            {processing ? 'Inachakata...' : `Lipa KSh ${totalPrice.toLocaleString()}`}
+            {processing ? 'Inachakata...' : `Lipa KSh ${grandTotal.toLocaleString()}`}
           </button>
         </form>
         
@@ -227,11 +259,38 @@ export default function CheckoutPage() {
                   <span className="font-medium">KSh {(item.price * item.quantity).toLocaleString()}</span>
                 </div>
               ))}
-              <div className="flex justify-between items-center pt-4 text-lg font-bold">
-                <span>Jumla</span>
-                <span>KSh {totalPrice.toLocaleString()}</span>
+              
+              {/* Order Summary Breakdown */}
+              <div className="pt-4 space-y-2 border-t border-gray-200">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Jumla ya Bidhaa:</span>
+                  <span className="font-medium">KSh {subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Usafirishaji:</span>
+                  <span className="font-medium">{shipping === 0 ? 'Bure' : `KSh ${shipping.toLocaleString()}`}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Kodi (8% VAT):</span>
+                  <span className="font-medium">KSh {tax.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 text-lg font-bold border-t border-gray-200">
+                  <span>Jumla Kuu:</span>
+                  <span className="text-emerald-600">KSh {grandTotal.toLocaleString()}</span>
+                </div>
               </div>
             </div>
+          </div>
+          
+          {/* Delivery Info Note */}
+          <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600">
+            <p className="font-medium mb-1">📦 Maelezo ya Usafirishaji:</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Usafiri bure kwa maagizo ya KSh 5,000 na zaidi</li>
+              <li>Usafiri wa KSh 299 kwa maagizo chini ya KSh 5,000</li>
+              <li>Uwasilishaji ndani ya siku 2-3 za kazi (Nairobi)</li>
+              <li>Miji mingine, uwasilishaji huchukua siku 3-5 za kazi</li>
+            </ul>
           </div>
         </div>
       </div>

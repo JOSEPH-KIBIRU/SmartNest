@@ -37,7 +37,7 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">Wasiliana Nasi</h3>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-center"><Phone className="h-4 w-4 mr-2 text-emerald-500" /> +254 798 118 515</li>
+              <li className="flex items-center"><Phone className="h-4 w-4 mr-2 text-emerald-500" /> +254 738 119 756</li>
               <li className="flex items-center"><Mail className="h-4 w-4 mr-2 text-emerald-500" /> support@smartnest.co.ke</li>
               <li className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-emerald-500" /> Nairobi, Kenya</li>
             </ul>
