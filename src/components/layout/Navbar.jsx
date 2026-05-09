@@ -54,10 +54,7 @@ export default function Navbar() {
     }
 
     try {
-      // Close mobile menu first
       setMenuOpen(false);
-      
-      // Small delay to ensure menu closes before redirect
       setTimeout(() => {
         login();
       }, 100);
@@ -66,18 +63,54 @@ export default function Navbar() {
     }
   };
 
-  const handleLogoutClick = (e) => {
+  // FIXED: Mobile logout handler
+  const handleMobileLogout = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenuOpen(false);
-    logout();
+    
+    console.log("Mobile logout button clicked");
+    
+    if (typeof logout !== "function") {
+      console.error("Logout function not available");
+      return;
+    }
+    
+    try {
+      // Close mobile menu first
+      setMenuOpen(false);
+      
+      // Small delay to ensure menu closes before logout redirect
+      setTimeout(() => {
+        logout();
+      }, 100);
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   };
 
-  // Direct login for mobile - bypasses any potential event issues
+  // Desktop logout handler
+  const handleLogoutClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log("Desktop logout button clicked");
+    
+    if (typeof logout !== "function") {
+      console.error("Logout function not available");
+      return;
+    }
+    
+    try {
+      await logout();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
+
+  // Direct login for mobile
   const handleMobileLogin = () => {
     console.log("Mobile login button clicked directly");
     setMenuOpen(false);
-    // Small delay to ensure menu closes
     setTimeout(() => {
       if (typeof login === "function") {
         login();
@@ -211,7 +244,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu - FIXED LOGIN BUTTON */}
+      {/* Mobile Menu - FIXED LOGOUT BUTTON */}
       {menuOpen && (
         <div className="md:hidden bg-gradient-to-br from-gray-800 via-slate-800 to-gray-900 backdrop-blur-lg border-t border-white/20">
           <div className="px-4 pt-4 pb-6 space-y-4">
@@ -269,11 +302,22 @@ export default function Navbar() {
                   >
                     Maagizo Yangu
                   </Link>
+                  {/* FIXED: Mobile logout button */}
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleLogoutClick();
+                      console.log("Mobile logout button clicked");
+                      // Close menu first
+                      setMenuOpen(false);
+                      // Then logout after a small delay
+                      setTimeout(() => {
+                        if (typeof logout === "function") {
+                          logout();
+                        } else {
+                          console.error("Logout function not available");
+                        }
+                      }, 100);
                     }}
                     className="block w-full text-left px-4 py-3 text-red-300 hover:text-red-200 hover:bg-white/10 rounded-xl transition-all flex items-center"
                   >
