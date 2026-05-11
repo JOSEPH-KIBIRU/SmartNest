@@ -43,7 +43,7 @@ export default function ProductDetailPage() {
   };
 
   const handleWhatsAppInquiry = () => {
-    const phoneNumber = '254700000000';
+    const phoneNumber = '254738119756';
     const message = `Hi SmartNest! I'm interested in ${product.name} - KSh ${product.price.toLocaleString()}`;
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
