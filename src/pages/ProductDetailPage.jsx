@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useCart } from '../contexts/CartContext';
+import { useFavorites } from '../contexts/FavoritesContext';
 import { 
   Star, 
   ShoppingCart, 
@@ -16,14 +17,17 @@ import {
   Truck,
   Smartphone,
   Building2,
-  ThumbsUp
+  ThumbsUp,
+  Heart
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import FavoriteButton from '../components/common/FavoriteButton';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const product = useQuery(api.products.getById, { id });
   const { addToCart } = useCart();
+  const { isFavorite } = useFavorites();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
   const [selectedAttrs, setSelectedAttrs] = useState({});
@@ -125,6 +129,9 @@ export default function ProductDetailPage() {
 
           <div className="flex items-baseline space-x-3">
             <span className="text-3xl font-bold text-gray-900">KSh {product.price.toLocaleString()}</span>
+            {product.compareAtPrice && (
+              <span className="text-xl text-gray-400 line-through">KSh {product.compareAtPrice.toLocaleString()}</span>
+            )}
           </div>
 
           {/* Trust Indicators */}
@@ -168,6 +175,9 @@ export default function ProductDetailPage() {
               Uliza kwa WhatsApp
             </button>
             
+            {/* Favorite Button */}
+            <FavoriteButton productId={product._id} size="h-6 w-6" className="p-3" />
+            
             {/* Share Button */}
             <div className="relative">
               <button
@@ -190,7 +200,6 @@ export default function ProductDetailPage() {
                         {copied ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5 text-gray-500" />}
                         <span className="text-sm">Copy Link</span>
                       </button>
-                      
                       <button
                         onClick={() => window.open(shareLinks.facebook, '_blank')}
                         className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -198,7 +207,6 @@ export default function ProductDetailPage() {
                         <span className="h-5 w-5 flex items-center justify-center text-blue-600 font-bold text-lg">f</span>
                         <span className="text-sm">Share on Facebook</span>
                       </button>
-                      
                       <button
                         onClick={() => window.open(shareLinks.twitter, '_blank')}
                         className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -206,7 +214,6 @@ export default function ProductDetailPage() {
                         <span className="h-5 w-5 flex items-center justify-center text-sky-500 text-lg">𝕏</span>
                         <span className="text-sm">Share on Twitter</span>
                       </button>
-                      
                       <button
                         onClick={() => window.open(shareLinks.whatsapp, '_blank')}
                         className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -225,7 +232,7 @@ export default function ProductDetailPage() {
             onClick={handleAdd} 
             disabled={product.inventory === 0 || added}
             className={`w-full flex items-center justify-center px-6 py-4 rounded-xl font-bold text-lg transition-colors ${
-              added ? 'bg-green-600 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              added ? 'bg-green-600 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-300'
             }`}
           >
             {added ? (
@@ -247,6 +254,21 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Product Specifications */}
+          {product.attributes && Object.keys(product.attributes).length > 0 && (
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Vigezo vya Bidhaa</h3>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(product.attributes).map(([k, v]) => (
+                  <div key={k} className="flex justify-between py-2 border-b border-gray-100">
+                    <dt className="text-gray-600 capitalize">{k}</dt>
+                    <dd className="font-medium text-gray-900">{Array.isArray(v) ? v.join(', ') : String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
       </div>
     </div>

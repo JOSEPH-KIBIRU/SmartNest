@@ -42,26 +42,25 @@ export default defineSchema({
       image: v.string(),
       attributes: v.optional(v.record(v.string(), v.any())),
     })),
-    // Make new fields optional for existing orders
-    subtotal: v.optional(v.number()),      // Changed to optional
-    shipping: v.optional(v.number()),       // Changed to optional
-    tax: v.optional(v.number()),            // Changed to optional
+    subtotal: v.optional(v.number()),
+    shipping: v.optional(v.number()),
+    tax: v.optional(v.number()),
     total: v.number(),
-    customerEmail: v.optional(v.string()),  // Changed to optional
+    customerEmail: v.optional(v.string()),
     status: v.union(
-      v.literal("pending"), 
-      v.literal("paid"), 
+      v.literal("pending"),
+      v.literal("paid"),
       v.literal("processing"),
-      v.literal("shipped"), 
-      v.literal("delivered"), 
+      v.literal("shipped"),
+      v.literal("delivered"),
       v.literal("cancelled")
     ),
     shippingAddress: v.object({
-      name: v.string(), 
-      phone: v.string(), 
+      name: v.string(),
+      phone: v.string(),
       address: v.string(),
-      city: v.string(), 
-      region: v.string(), 
+      city: v.string(),
+      region: v.string(),
       notes: v.optional(v.string()),
     }),
     paymentIntentId: v.optional(v.string()),
@@ -78,6 +77,9 @@ export default defineSchema({
     role: v.union(v.literal("customer"), v.literal("admin")),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
+    city: v.optional(v.string()),
+    region: v.optional(v.string()),
+    postalCode: v.optional(v.string()),
     avatar: v.optional(v.string()),
     auth0Id: v.string(),
     createdAt: v.optional(v.number()),
@@ -85,4 +87,13 @@ export default defineSchema({
   })
     .index("by_auth0Id", ["auth0Id"])
     .index("by_email", ["email"]),
+
+  // NEW: Favorites/Wishlist Table
+  favorites: defineTable({
+    userId: v.string(),
+    productId: v.id("products"),
+    addedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_product", ["userId", "productId"]),
 });

@@ -1,39 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { CreditCard, MapPin, Phone, User, AlertCircle, LogIn } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SavedShippingDetails from '../components/checkout/SavedShippingDetails';
+import toast from 'react-hot-toast';
 
 export default function CheckoutPage() {
   const { cart, totalPrice, clearCart } = useCart();
-  const { isAuthenticated, user, login } = useAuth();
+  const { isAuthenticated, user, auth0User, login } = useAuth();
   const createOrder = useMutation(api.orders.create);
   const navigate = useNavigate();
   
+  // Get user data including saved shipping
+  const userData = useQuery(api.auth.getUser, 
+    isAuthenticated && auth0User?.sub ? { auth0Id: auth0User.sub } : 'skip'
+  );
+  
   const [form, setForm] = useState({ 
-    name: user?.name || '', 
-    phone: '', 
-    address: '', 
-    city: '', 
-    region: '', 
-    email: user?.email || '',
+    name: user?.name || userData?.name || '', 
+    phone: userData?.phone || '', 
+    address: userData?.address || '', 
+    city: userData?.city || '', 
+    region: userData?.region || '', 
+    email: user?.email || userData?.email || '',
     notes: '' 
   });
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
+  // Auto-fill form when userData loads
+  useEffect(() => {
+    if (userData && isAuthenticated) {
+      setForm(prev => ({
+        ...prev,
+        name: prev.name || userData.name || '',
+        phone: prev.phone || userData.phone || '',
+        address: prev.address || userData.address || '',
+        city: prev.city || userData.city || '',
+        region: prev.region || userData.region || '',
+        email: prev.email || userData.email || '',
+      }));
+    }
+  }, [userData, isAuthenticated]);
+
+  const updateFormData = (newData) => {
+    setForm(prev => ({ ...prev, ...newData }));
+  };
+
   // Calculate shipping and tax
   const calculateShipping = (subtotal) => {
-    // Free shipping for orders over 5000 KSh, otherwise 299 KSh
     return subtotal > 5000 ? 0 : 299;
   };
 
   const calculateTax = (subtotal) => {
-    // 8% tax (e.g., VAT)
-    return subtotal * 0.08;
+    return subtotal * 0.16;
   };
 
   if (cart.length === 0) {
@@ -60,16 +84,13 @@ export default function CheckoutPage() {
     try {
       // Validate required fields
       if (!form.name || !form.phone || !form.address || !form.city || !form.region) {
-        setError('Tafadhali jaza sehemu zote zenye alama ya nyota (*)');
+        toast.error('Tafadhali jaza sehemu zote zenye alama ya nyota (*)');
         setProcessing(false);
         return;
       }
       
-      // Generate a guest user ID if not logged in
-      const userId = user?._id || `guest_${Date.now()}`;
-      
-      // Get customer email (use form email or fallback)
-      const customerEmail = form.email || `${form.phone}@guest.smartnest.com`;
+      const userId = user?._id || userData?._id || `guest_${Date.now()}`;
+      const customerEmail = form.email || user?.email || userData?.email || `${form.phone}@guest.smartnest.com`;
       
       const orderId = await createOrder({
         userId: userId,
@@ -97,10 +118,11 @@ export default function CheckoutPage() {
       });
       
       clearCart();
+      toast.success('Agizo limefanikiwa!');
       navigate('/order-success', { state: { orderId } });
     } catch (err) {
       console.error('Order creation error:', err);
-      setError(err.message || 'Kulikuwa na hitilafu. Tafadhali jaribu tena.');
+      toast.error(err.message || 'Kulikuwa na hitilafu. Tafadhali jaribu tena.');
     } finally { 
       setProcessing(false); 
     }
@@ -115,13 +137,12 @@ export default function CheckoutPage() {
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start">
           <LogIn className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-blue-800 font-medium">Unanunua kama mgeni</p>
+            <p className="text-blue-800 font-medium">Unaununua kama mgeni</p>
             <p className="text-blue-600 text-sm mt-1">
-              Unaweza kuendelea bila kuingia. 
+              Ingia ili kuhifadhi anwani yako kwa ajili ya ununuzi ujao.
               <button onClick={login} className="underline font-medium ml-1 hover:text-blue-800">
                 Ingia hapa
-              </button> 
-              ikiwa unataka kuokoa maagizo yako.
+              </button>
             </p>
           </div>
         </div>
@@ -136,6 +157,14 @@ export default function CheckoutPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Saved Shipping Details Component */}
+          {isAuthenticated && (
+            <SavedShippingDetails 
+              formData={form}
+              updateFormData={updateFormData}
+            />
+          )}
+          
           <div className="bg-white p-6 rounded-xl border border-gray-200">
             <h2 className="text-lg font-semibold mb-4 flex items-center">
               <MapPin className="mr-2 h-5 w-5 text-emerald-600" /> 
@@ -181,7 +210,6 @@ export default function CheckoutPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500" 
                   placeholder="john@example.com" 
                 />
-                <p className="text-xs text-gray-500 mt-1">Tutatumia ikiwa tunahitaji kukusiliana</p>
               </div>
               
               <div className="md:col-span-2">
@@ -243,6 +271,7 @@ export default function CheckoutPage() {
           </button>
         </form>
         
+        {/* Order Summary - same as before */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl border border-gray-200">
             <h2 className="text-lg font-semibold mb-4">Muhtasari wa Agizo</h2>
@@ -260,7 +289,6 @@ export default function CheckoutPage() {
                 </div>
               ))}
               
-              {/* Order Summary Breakdown */}
               <div className="pt-4 space-y-2 border-t border-gray-200">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Jumla ya Bidhaa:</span>
@@ -271,7 +299,7 @@ export default function CheckoutPage() {
                   <span className="font-medium">{shipping === 0 ? 'Bure' : `KSh ${shipping.toLocaleString()}`}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Kodi (8% VAT):</span>
+                  <span className="text-gray-600">Kodi (16% VAT):</span>
                   <span className="font-medium">KSh {tax.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 text-lg font-bold border-t border-gray-200">
@@ -280,17 +308,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Delivery Info Note */}
-          <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600">
-            <p className="font-medium mb-1">📦 Maelezo ya Usafirishaji:</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
-              <li>Usafiri bure kwa maagizo ya KSh 5,000 na zaidi</li>
-              <li>Usafiri wa KSh 299 kwa maagizo chini ya KSh 5,000</li>
-              <li>Uwasilishaji ndani ya siku 2-3 za kazi (Nairobi)</li>
-              <li>Miji mingine, uwasilishaji huchukua siku 3-5 za kazi</li>
-            </ul>
           </div>
         </div>
       </div>

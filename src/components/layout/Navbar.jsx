@@ -10,17 +10,19 @@ import {
   LogIn,
   LogOut,
   LayoutDashboard,
+  Heart,
 } from "lucide-react";
 import { useCart } from "../../contexts/CartContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useFavorites } from "../../contexts/FavoritesContext";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const { totalItems, setIsOpen } = useCart();
-  const { isAuthenticated, login, logout, user, isAdmin, isLoading } =
-    useAuth();
+  const { isAuthenticated, login, logout, user, isAdmin, isLoading } = useAuth();
+  const { favoriteCount } = useFavorites();
   const navigate = useNavigate();
 
   // Detect scroll to change navbar style
@@ -63,12 +65,11 @@ export default function Navbar() {
     }
   };
 
-  // FIXED: Mobile logout handler
-  const handleMobileLogout = async (e) => {
+  const handleLogoutClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log("Mobile logout button clicked");
+    console.log("Logout button clicked");
     
     if (typeof logout !== "function") {
       console.error("Logout function not available");
@@ -76,49 +77,13 @@ export default function Navbar() {
     }
     
     try {
-      // Close mobile menu first
       setMenuOpen(false);
-      
-      // Small delay to ensure menu closes before logout redirect
       setTimeout(() => {
         logout();
       }, 100);
     } catch (err) {
       console.error("Logout error:", err);
     }
-  };
-
-  // Desktop logout handler
-  const handleLogoutClick = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log("Desktop logout button clicked");
-    
-    if (typeof logout !== "function") {
-      console.error("Logout function not available");
-      return;
-    }
-    
-    try {
-      await logout();
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-  };
-
-  // Direct login for mobile
-  const handleMobileLogin = () => {
-    console.log("Mobile login button clicked directly");
-    setMenuOpen(false);
-    setTimeout(() => {
-      if (typeof login === "function") {
-        login();
-      } else {
-        console.error("Login function not available");
-        alert("Unable to login. Please try again.");
-      }
-    }, 100);
   };
 
   return (
@@ -172,6 +137,19 @@ export default function Navbar() {
               </Link>
             )}
 
+            {/* Favorites Link */}
+            <Link
+              to="/favorites"
+              className="relative p-2 text-white hover:text-amber-300 transition-colors rounded-full hover:bg-white/10"
+            >
+              <Heart className="h-5 w-5" />
+              {favoriteCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {favoriteCount}
+                </span>
+              )}
+            </Link>
+
             {isLoading ? (
               <div className="text-sm text-white/80">
                 <div className="animate-pulse">Inapakia...</div>
@@ -219,6 +197,17 @@ export default function Navbar() {
 
           {/* Mobile buttons */}
           <div className="md:hidden flex items-center space-x-4">
+            <Link
+              to="/favorites"
+              className="relative p-2 text-white hover:text-amber-300 transition-colors"
+            >
+              <Heart className="h-5 w-5" />
+              {favoriteCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {favoriteCount}
+                </span>
+              )}
+            </Link>
             <button
               onClick={() => setIsOpen(true)}
               className="relative p-2 text-white hover:text-amber-300 transition-colors"
@@ -234,17 +223,13 @@ export default function Navbar() {
               onClick={() => setMenuOpen(!menuOpen)}
               className="p-2 text-white hover:text-amber-300 transition-colors"
             >
-              {menuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu - FIXED LOGOUT BUTTON */}
+      {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-gradient-to-br from-gray-800 via-slate-800 to-gray-900 backdrop-blur-lg border-t border-white/20">
           <div className="px-4 pt-4 pb-6 space-y-4">
@@ -282,13 +267,27 @@ export default function Navbar() {
                 Elektroniki
               </Link>
 
+              <Link
+                to="/favorites"
+                onClick={() => setMenuOpen(false)}
+                className="block px-4 py-3 text-white/90 hover:text-amber-300 hover:bg-white/10 rounded-xl transition-all flex items-center gap-2"
+              >
+                <Heart className="h-4 w-4" />
+                Favoriti Zangu
+                {favoriteCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    {favoriteCount}
+                  </span>
+                )}
+              </Link>
+
               {isAdmin && (
                 <Link
                   to="/admin"
                   onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-3 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-all font-medium flex items-center"
+                  className="block px-4 py-3 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-all font-medium flex items-center gap-2"
                 >
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  <LayoutDashboard className="h-4 w-4" />
                   Admin Dashboard
                 </Link>
               )}
@@ -302,40 +301,20 @@ export default function Navbar() {
                   >
                     Maagizo Yangu
                   </Link>
-                  {/* FIXED: Mobile logout button */}
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log("Mobile logout button clicked");
-                      // Close menu first
-                      setMenuOpen(false);
-                      // Then logout after a small delay
-                      setTimeout(() => {
-                        if (typeof logout === "function") {
-                          logout();
-                        } else {
-                          console.error("Logout function not available");
-                        }
-                      }, 100);
-                    }}
-                    className="block w-full text-left px-4 py-3 text-red-300 hover:text-red-200 hover:bg-white/10 rounded-xl transition-all flex items-center"
+                    onClick={handleLogoutClick}
+                    className="block w-full text-left px-4 py-3 text-red-300 hover:text-red-200 hover:bg-white/10 rounded-xl transition-all flex items-center gap-2"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="h-4 w-4" />
                     Toka
                   </button>
                 </>
               ) : (
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Mobile login button clicked");
-                    handleMobileLogin();
-                  }}
-                  className="block w-full text-left px-4 py-3 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-all font-medium flex items-center"
+                  onClick={handleLoginClick}
+                  className="block w-full text-left px-4 py-3 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-all font-medium flex items-center gap-2"
                 >
-                  <LogIn className="h-4 w-4 mr-2" />
+                  <LogIn className="h-4 w-4" />
                   Ingia / Jiunge
                 </button>
               )}

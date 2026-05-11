@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as categories from "../categories.js";
+import type * as favorites from "../favorites.js";
 import type * as orders from "../orders.js";
 import type * as products from "../products.js";
 import type * as stripe from "../stripe.js";
@@ -23,6 +24,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   categories: typeof categories;
+  favorites: typeof favorites;
   orders: typeof orders;
   products: typeof products;
   stripe: typeof stripe;
